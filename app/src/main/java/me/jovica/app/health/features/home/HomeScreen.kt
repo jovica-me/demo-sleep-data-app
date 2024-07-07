@@ -34,7 +34,6 @@ import kotlinx.coroutines.launch
 import me.jovica.app.health.ui.nav.OneNightDataScreeen
 import java.text.SimpleDateFormat
 import java.time.Instant
-import java.time.LocalDateTime
 import java.util.Locale
 
 

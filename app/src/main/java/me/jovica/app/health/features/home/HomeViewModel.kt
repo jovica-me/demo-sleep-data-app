@@ -1,7 +1,5 @@
 package me.jovica.app.health.features.home
 
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.runtime.toMutableStateList
 import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.lifecycle.ViewModel
