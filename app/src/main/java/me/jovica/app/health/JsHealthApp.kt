@@ -2,44 +2,38 @@ package me.jovica.app.health
 
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
-import androidx.health.connect.client.records.HeartRateRecord
-import androidx.health.connect.client.records.StepsRecord
-import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
-import androidx.navigation.compose.rememberNavController
+import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import me.jovica.app.health.data.HealthConnectManager
+import me.jovica.app.health.features.welcome.WelcomeScreen
 import me.jovica.app.health.ui.nav.MainNav
 import me.jovica.app.health.ui.theme.JsHealthTheme
 
 
-val permissions = setOf(
-    HealthPermission.getReadPermission(ExerciseSessionRecord::class),
-)
-
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun JsHealthApp(healthConnectManager: HealthConnectManager) {
+fun JsHealthApp(sdkGood: Int, hasPermission: Boolean, updateAppState :() -> Unit ) {
 
-    val sdkGood = healthConnectManager.availability.value
-
-
-    val permissionsLauncher =
-        rememberLauncherForActivityResult(healthConnectManager.requestPermissionsActivityContract()) {}
 
     val context = LocalContext.current
 
@@ -47,15 +41,29 @@ fun JsHealthApp(healthConnectManager: HealthConnectManager) {
         Box(Modifier.background(MaterialTheme.colorScheme.background)) {
 
             when (sdkGood) {
-                HealthConnectClient.SDK_AVAILABLE -> MainNav()
+                HealthConnectClient.SDK_AVAILABLE -> {
 
-                HealthConnectClient.SDK_UNAVAILABLE -> Text("Health Connect is not available on your device ")
+                    if (hasPermission) {
+                        MainNav()
+                    } else {
+                        WelcomeScreen(viewModel()) {
+                            updateAppState()
+                        }
+                    }
+                }
 
-                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> {
-                    Column {
+                HealthConnectClient.SDK_UNAVAILABLE -> Scaffold { padding ->
+                    Column(Modifier.padding(padding)) {
+                        Text("Health Connect is not available on your deviceW")
+                    }
+                }
+
+                HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> Scaffold { padding ->
+                    Column(Modifier.padding(padding)) {
                         Text("Install or update Health Connect from the Google Play store")
                         Button(onClick = {
-                            val uriString = "market://details?url=healthconnect%3A%2F%2Fonboarding"
+                            val uriString =
+                                "market://details?url=healthconnect%3A%2F%2Fonboarding"
                             context.startActivity(
                                 Intent(Intent.ACTION_VIEW).apply {
                                     setPackage("com.android.vending")
@@ -69,6 +77,7 @@ fun JsHealthApp(healthConnectManager: HealthConnectManager) {
                         }
                     }
                 }
+
             }
 
         }

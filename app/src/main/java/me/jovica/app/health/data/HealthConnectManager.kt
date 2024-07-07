@@ -1,16 +1,19 @@
-package me.jovica.app.health
+package me.jovica.app.health.data
 
 import android.content.Context
 import android.os.Build
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContract
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.changes.Change
+import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.ExerciseSessionRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.SpeedRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
@@ -24,6 +27,7 @@ import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Length
 import androidx.health.connect.client.units.Mass
 import androidx.health.connect.client.units.Velocity
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import java.io.IOException
@@ -32,32 +36,32 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
+import kotlin.coroutines.coroutineContext
 import kotlin.random.Random
 
 
 const val MIN_SUPPORTED_SDK = Build.VERSION_CODES.O_MR1
 
 class HealthConnectManager(private val context: Context) {
+    companion object {
+         val permissionsSet: Set<String> = setOf(HealthPermission.getReadPermission(SleepSessionRecord::class))
+    }
     private val healthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
     var availability = mutableStateOf(HealthConnectClient.getSdkStatus(context))
         private set
+
 
     init {
         checkAvailability()
 
     }
 
-    fun checkAvailability() {
+    private fun checkAvailability() {
         availability.value = HealthConnectClient.getSdkStatus(context)
     }
 
-    /**
-     * Determines whether all the specified permissions are already granted. It is recommended to
-     * call [PermissionController.getGrantedPermissions] first in the permissions flow, as if the
-     * permissions are already granted then there is no need to request permissions via
-     * [PermissionController.createRequestPermissionResultContract].
-     */
+
     suspend fun hasAllPermissions(permissions: Set<String>): Boolean {
         return healthConnectClient.permissionController.getGrantedPermissions().containsAll(permissions)
     }
@@ -65,6 +69,33 @@ class HealthConnectManager(private val context: Context) {
     fun requestPermissionsActivityContract(): ActivityResultContract<Set<String>, Set<String>> {
         return PermissionController.createRequestPermissionResultContract()
     }
+
+
+    suspend fun readSleepSessions(start: Instant, end: Instant): List<SleepSessionRecord> {
+        val request = ReadRecordsRequest(
+            recordType = SleepSessionRecord::class,
+            timeRangeFilter = TimeRangeFilter.between(start, end)
+        )
+        val response = healthConnectClient.readRecords(request)
+        return response.records
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /**
      * TODO: Writes [WeightRecord] to Health Connect.
@@ -123,6 +154,8 @@ class HealthConnectManager(private val context: Context) {
         val response = healthConnectClient.readRecords(request)
         return response.records
     }
+
+
 
     /**
      * TODO: Writes an [ExerciseSessionRecord] to Health Connect.
